@@ -1,8 +1,10 @@
 package com.codewithkael.webrtcprojectforrecord
 
 import android.app.Application
+import android.util.Log
 import com.codewithkael.webrtcprojectforrecord.models.MessageModel
 import org.webrtc.*
+
 
 class RTCClient(
     private val application: Application,
@@ -18,11 +20,8 @@ class RTCClient(
     private val eglContext = EglBase.create()
     private val peerConnectionFactory by lazy { createPeerConnectionFactory() }
     private val iceServer = listOf(
-        PeerConnection.IceServer.builder("stun:iphone-stun.strato-iphone.de:3478").createIceServer(),
-        PeerConnection.IceServer("stun:openrelay.metered.ca:80"),
-        PeerConnection.IceServer("turn:openrelay.metered.ca:80","openrelayproject","openrelayproject"),
-        PeerConnection.IceServer("turn:openrelay.metered.ca:443","openrelayproject","openrelayproject"),
-        PeerConnection.IceServer("turn:openrelay.metered.ca:443?transport=tcp","openrelayproject","openrelayproject"),
+        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+        PeerConnection.IceServer("turn:15.164.227.167","username1","key1"),
 
         )
     private val peerConnection by lazy { createPeerConnection(observer) }
@@ -59,6 +58,7 @@ class RTCClient(
     }
 
     private fun createPeerConnection(observer: PeerConnection.Observer): PeerConnection? {
+        Log.d("createPC", "$observer")
         return peerConnectionFactory.createPeerConnection(iceServer, observer)
     }
 
@@ -83,18 +83,28 @@ class RTCClient(
         localVideoTrack?.addSink(surface)
         localAudioTrack =
             peerConnectionFactory.createAudioTrack("local_track_audio", localAudioSource)
+        /*val localStream = peerConnectionFactory.createLocalMediaStream("local_stream")
+        localStream.addTrack(localAudioTrack)
+        localStream.addTrack(localVideoTrack)
+
+        peerConnection?.addStream(localStream)
+        Log.d("startLocalVideo", "peerConnection : ${peerConnection} , localStream id : $localStream")*/
+
+    }
+
+    fun startAddStream(){
         val localStream = peerConnectionFactory.createLocalMediaStream("local_stream")
         localStream.addTrack(localAudioTrack)
         localStream.addTrack(localVideoTrack)
 
         peerConnection?.addStream(localStream)
-
+        Log.d("startLocalVideo", "peerConnection : ${peerConnection} , localStream id : $localStream")
     }
 
     private fun getVideoCapturer(application: Application): CameraVideoCapturer {
         return Camera2Enumerator(application).run {
             deviceNames.find {
-                isFrontFacing(it)
+                isBackFacing(it)
             }?.let {
                 createCapturer(it, null)
             } ?: throw
@@ -111,7 +121,7 @@ class RTCClient(
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection?.setLocalDescription(object : SdpObserver {
                     override fun onCreateSuccess(p0: SessionDescription?) {
-
+                            Log.d("CcreateSuccSdpObserver", "$p0")
                     }
 
                     override fun onSetSuccess() {
@@ -125,12 +135,15 @@ class RTCClient(
                                 "create_offer", username, target, offer
                             )
                         )
+                        Log.d("CSsetLocalDesc", "success : $desc")
                     }
 
                     override fun onCreateFailure(p0: String?) {
+                        Log.d("CFCreateLocalDesc", "fail : $desc")
                     }
 
                     override fun onSetFailure(p0: String?) {
+                        Log.d("CFSetLocalDesc", "fail : $desc")
                     }
 
                 }, desc)
@@ -138,12 +151,15 @@ class RTCClient(
             }
 
             override fun onSetSuccess() {
+                Log.d("CSSetCreateOffer", "success")
             }
 
             override fun onCreateFailure(p0: String?) {
+                Log.d("CFCreateOffer", "failure")
             }
 
             override fun onSetFailure(p0: String?) {
+                Log.d("CFSetCreateOffer", "failure")
             }
         }, mediaConstraints)
     }
@@ -151,16 +167,19 @@ class RTCClient(
     fun onRemoteSessionReceived(session: SessionDescription) {
         peerConnection?.setRemoteDescription(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
-
+                Log.d("SCRemoteSDesc", "success")
             }
 
             override fun onSetSuccess() {
+                Log.d("SSRemoteSDesc", "success")
             }
 
             override fun onCreateFailure(p0: String?) {
+                Log.d("FCRemoteSDesc", "failure")
             }
 
             override fun onSetFailure(p0: String?) {
+                Log.d("FSRemoteSDesc", "failure")
             }
 
         }, session)
@@ -175,6 +194,7 @@ class RTCClient(
             override fun onCreateSuccess(desc: SessionDescription?) {
                 peerConnection?.setLocalDescription(object : SdpObserver {
                     override fun onCreateSuccess(p0: SessionDescription?) {
+                        Log.d("AcreateSuccSdpObserver", "$p0")
                     }
 
 
@@ -188,28 +208,35 @@ class RTCClient(
                                 "create_answer", username, target, answer
                             )
                         )
+                        Log.d("ASsetLocalDesc", "setLocalDescriptionSuccess")
                     }
 
                     override fun onCreateFailure(p0: String?) {
+                        Log.d("AFsetLocalDesc", "failure")
                     }
 
                     override fun onSetFailure(p0: String?) {
+                        Log.d("AFsetLocalDesc", "failure")
                     }
 
                 }, desc)
             }
 
             override fun onSetSuccess() {
+                Log.d("ASSetSetAnswer", "setSdpsuccess")
             }
 
             override fun onCreateFailure(p0: String?) {
+                Log.d("ASSetCreateAnswer", "failure")
             }
 
             override fun onSetFailure(p0: String?) {
+                Log.d("ASetCreateAnswer", "failure")
             }
 
         }, constraints)
     }
+
 
     fun addIceCandidate(p0: IceCandidate?) {
         peerConnection?.addIceCandidate(p0)

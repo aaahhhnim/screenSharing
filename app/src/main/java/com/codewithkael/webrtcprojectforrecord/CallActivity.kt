@@ -64,7 +64,9 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
             override fun onAddStream(p0: MediaStream?) {
                 super.onAddStream(p0)
                 p0?.videoTracks?.get(0)?.addSink(binding.remoteView)
-                Log.d(TAG, "onAddStream: $p0")
+                var tmp = p0?.videoTracks?.get(0)
+                //Log.d(TAG, "onAddStream: $p0")
+                Log.d(TAG, " MediaStream id : $p0 videoid : $tmp")
 
             }
         })
@@ -79,11 +81,13 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                 target = targetUserNameEt.text.toString()
             }
 
+
+
             switchCameraButton.setOnClickListener {
                 rtcClient?.switchCamera()
             }
 
-            micButton.setOnClickListener {
+/*            micButton.setOnClickListener {
                 if (isMute){
                     isMute = false
                     micButton.setImageResource(R.drawable.ic_baseline_mic_off_24)
@@ -92,7 +96,7 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                     micButton.setImageResource(R.drawable.ic_baseline_mic_24)
                 }
                 rtcClient?.toggleAudio(isMute)
-            }
+            }*/
 
             videoButton.setOnClickListener {
                 if (isCameraPause){
@@ -105,7 +109,7 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                 rtcClient?.toggleCamera(isCameraPause)
             }
 
-            audioOutputButton.setOnClickListener {
+/*            audioOutputButton.setOnClickListener {
                 if (isSpeakerMode){
                     isSpeakerMode = false
                     audioOutputButton.setImageResource(R.drawable.ic_baseline_hearing_24)
@@ -117,7 +121,7 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
 
                 }
 
-            }
+            }*/
             endCallButton.setOnClickListener {
                 setCallLayoutGone()
                 setWhoToCallLayoutVisible()
@@ -129,9 +133,8 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
     }
 
     override fun onNewMessage(message: MessageModel) {
-        Log.d(TAG, "onNewMessage: $message")
         when(message.type){
-            "call_response"->{
+            "call_response"->{ //전화 거는 사람
                 if (message.data == "user is not online"){
                     //user is not reachable
                     runOnUiThread {
@@ -144,9 +147,10 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                         setWhoToCallLayoutGone()
                         setCallLayoutVisible()
                         binding.apply {
-                            rtcClient?.initializeSurfaceView(localView)
+                            //rtcClient?.initializeSurfaceView(localView)
                             rtcClient?.initializeSurfaceView(remoteView)
-                            rtcClient?.startLocalVideo(localView)
+                            rtcClient?.startLocalVideo(remoteView) //remoteView로 바꿔야
+                            rtcClient?.startAddStream()
                             rtcClient?.call(targetUserNameEt.text.toString())
                         }
 
@@ -156,7 +160,6 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                 }
             }
             "answer_received" ->{
-
                 val session = SessionDescription(
                     SessionDescription.Type.ANSWER,
                     message.data.toString()
@@ -165,8 +168,9 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                 runOnUiThread {
                     binding.remoteViewLoading.visibility = View.GONE
                 }
+                Log.d(TAG, "answer_received: session : $session")
             }
-            "offer_received" ->{
+            "offer_received" ->{ // 전화 받는 사람
                 runOnUiThread {
                     setIncomingCallLayoutVisible()
                     binding.incomingNameTV.text = "${message.name.toString()} is calling you"
@@ -176,9 +180,9 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                         setWhoToCallLayoutGone()
 
                         binding.apply {
-                            rtcClient?.initializeSurfaceView(localView)
+                            //rtcClient?.initializeSurfaceView(localView)
                             rtcClient?.initializeSurfaceView(remoteView)
-                            rtcClient?.startLocalVideo(localView)
+                            //rtcClient?.startLocalVideo(remoteView) //remote view
                         }
                         val session = SessionDescription(
                             SessionDescription.Type.OFFER,
@@ -195,6 +199,7 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                     }
 
                 }
+                Log.d(TAG, "offer_received")
 
             }
 
@@ -208,6 +213,7 @@ class CallActivity : AppCompatActivity(), NewMessageInterface {
                 }catch (e:Exception){
                     e.printStackTrace()
                 }
+                Log.d(TAG, "ice_candidate")
             }
         }
     }
